@@ -1,0 +1,105 @@
+---
+title: "ProjekAkhir"
+output: word_document
+date: "2025-05-23"
+---
+```{r}
+# 1. Membaca dataset  
+Tingkat_kemiskinan_kota <- read.csv("C:/Users/Lenovo/OneDrive/Documents/PENS/SEMESTER 2/Pemodelan Statistik Terapan/TUGAS AKHIR/datafinal1.csv") 
+Tingkat_kemiskinan_kota
+
+```
+
+```{r}
+# Model OLS 
+model <- lm(Tingkat_kemiskinan_kota ~ ., data = Tingkat_kemiskinan_kota) 
+summary(model) 
+```
+
+```{r}
+# 2. Menghapus kolom pertama (target)
+Tingkat_kemiskinanX <- Tingkat_kemiskinan_kota[,-1] 
+Tingkat_kemiskinanX.pca <- prcomp(Tingkat_kemiskinanX, center = TRUE, scale. = TRUE)  
+plot(Tingkat_kemiskinanX.pca, type="l")
+```
+
+```{r}
+# 3. Ringkasan komponen utama
+summary(Tingkat_kemiskinanX.pca)
+```
+
+```{r}
+# 4. Matriks rotasi
+print(Tingkat_kemiskinanX.pca$rotation) 
+```
+
+```{r}
+# 5. Nilai eigen dari matriks korelasi
+eigen(cor(Tingkat_kemiskinanX))$values 
+diag(var(Tingkat_kemiskinanX.pca$x))
+```
+
+```{r}
+# 6. Korelasi antar komponen utama
+cor(Tingkat_kemiskinanX.pca$x) 
+```
+
+```{r}
+# 7. Korelasi gabungan data asli dan PCA
+cor(cbind(Tingkat_kemiskinanX, as.data.frame(Tingkat_kemiskinanX.pca$x))) 
+```
+
+```{r}
+# 8. Korelasi target dengan PCA
+pca_df <- as.data.frame(Tingkat_kemiskinanX.pca$x)
+target_numerik <- Tingkat_kemiskinan_kota$Tingkat_kemiskinan
+data_for_correlation <- cbind(target_numerik, pca_df)
+correlation_matrix <- cor(data_for_correlation)
+print(correlation_matrix[,1])
+```
+
+```{r}
+# 9. Regresi semua komponen utama
+Tingkat_kemiskinan.pca <- data.frame(target_numerik, pca_df)
+Tingkat_kemiskinan.pcr1 <- lm(target_numerik ~ ., data = Tingkat_kemiskinan.pca)
+summary(Tingkat_kemiskinan.pcr1)
+```
+
+```{r}
+# 10. Koefisien asli dari PCA
+betas1 <- Tingkat_kemiskinanX.pca$rotation %*% Tingkat_kemiskinan.pcr1$coefficients[-1]
+print(betas1)
+```
+
+```{r}
+# 11. Regresi hanya PC signifikan
+Tingkat_kemiskinan.pcr2 <- lm(target_numerik ~ PC1 + PC2 + PC4 + PC5 + PC6 + PC7 + PC8, data = Tingkat_kemiskinan.pca)
+summary(Tingkat_kemiskinan.pcr2)
+```
+
+```{r}
+# 12. Perbandingan model
+anova(Tingkat_kemiskinan.pcr1, Tingkat_kemiskinan.pcr2)
+```
+
+```{r}
+# 13. Best subset regression
+library(leaps)
+leaps <- regsubsets(target_numerik ~ ., data = Tingkat_kemiskinan.pca, method = "exhaustive")
+library(car)
+subsets(leaps, statistic = "bic", legend = FALSE)
+```
+
+```{r}
+# 14. Model dengan PC3 dan PC6 diset 0
+fullmodelcoef <- Tingkat_kemiskinan.pcr1$coefficients[-1]
+fullmodelcoef["PC3"] <- 0
+fullmodelcoef["PC6"] <- 0
+betas2 <- Tingkat_kemiskinanX.pca$rotation %*% fullmodelcoef
+print(betas2)
+```
+
+```{r}
+str(Tingkat_kemiskinan_kota)
+```
+
